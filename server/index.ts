@@ -1,13 +1,21 @@
 import express from "express";
 import * as dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { db } from "../db/index.js";
-import { serviceOrders, inventoryParts, invoices, vehicles, customers } from "../db/schema.js";
+import { serviceOrders, inventoryParts, invoices } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
+
+// Serve static frontend from public directory
+app.use(express.static(path.join(__dirname, "../public")));
 
 const PORT = process.env.PORT || 3000;
 
@@ -80,7 +88,6 @@ app.post("/api/pos/checkout", async (req, res) => {
     const { serviceOrderId, invoiceNumber, totalAmount, discount, paymentMethod } = req.body;
     const finalAmount = (parseFloat(totalAmount) - parseFloat(discount || 0)).toString();
     
-    // Create Invoice
     const [invoice] = await db.insert(invoices).values({
       serviceOrderId,
       invoiceNumber,
@@ -92,7 +99,6 @@ app.post("/api/pos/checkout", async (req, res) => {
       paidAt: new Date()
     }).returning();
 
-    // Update SPK status to invoiced/completed
     await db.update(serviceOrders)
       .set({ status: "invoiced" })
       .where(eq(serviceOrders.id, serviceOrderId));
@@ -104,5 +110,5 @@ app.post("/api/pos/checkout", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`BengkelOS API server running on port ${PORT}`);
+  console.log(`BengkelOS server running on http://localhost:${PORT}`);
 });
