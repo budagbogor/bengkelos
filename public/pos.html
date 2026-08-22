@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kasir (POS) - BengkelOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <div class="p-5 border-b border-slate-700 flex items-center space-x-3">
+                <span class="text-2xl">🔧</span>
+                <h1 class="text-xl font-bold text-white tracking-wider">BengkelOS</h1>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="index.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <span>📊</span><span>Dashboard</span>
+                </a>
+                <a href="pos.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium">
+                    <span>💰</span><span>Kasir (POS)</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-slate-700 text-xs text-slate-400">
+                PT. Surga Mobil Indonesia / Mobeng Style
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            <!-- Topbar -->
+            <header class="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-8">
+                <h2 class="text-lg font-semibold text-white">Kasir - Point of Sale</h2>
+                <span id="server-status" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">System Online</span>
+            </header>
+
+            <!-- Content Body -->
+            <div class="p-8 space-y-6">
+
+                <!-- Alert Box -->
+                <div id="alert-box" class="hidden p-4 rounded-xl text-sm font-medium"></div>
+
+                <!-- Step 1: Pilih SPK -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-700">
+                        <h3 class="font-bold text-white">Langkah 1 — Pilih SPK yang Sudah Selesai</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center space-x-4">
+                            <select id="spk-select" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                                <option value="">-- Pilih No. SPK --</option>
+                            </select>
+                            <button onclick="loadSPK()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition">Cari</button>
+                        </div>
+                        <div id="spk-detail" class="hidden mt-4 p-4 bg-slate-700/50 rounded-lg space-y-2 text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Tambah Item / Part & Jasa -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-700">
+                        <h3 class="font-bold text-white">Langkah 2 — Tambah Item & Jasa</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Nama Item / Part</label>
+                                <input type="text" id="item-name" placeholder="Contoh: Oli Engine 5W-30" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Qty</label>
+                                <input type="number" id="item-qty" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Harga (Rp)</label>
+                                <input type="number" id="item-price" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button onclick="addItem()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg transition">+ Tambah Item</button>
+                        </div>
+
+                        <!-- Items Table -->
+                        <div class="overflow-x-auto mt-4">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="bg-slate-700/50 text-slate-400 uppercase text-xs">
+                                        <th class="px-4 py-3">Item / Part</th>
+                                        <th class="px-4 py-3 text-center">Qty</th>
+                                        <th class="px-4 py-3 text-right">Harga</th>
+                                        <th class="px-4 py-3 text-right">Subtotal</th>
+                                        <th class="px-4 py-3 text-center">Hapus</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="items-body" class="divide-y divide-slate-700 text-slate-300">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-6 text-center text-slate-500">Belum ada item ditambahkan.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Ringkasan & Pembayaran -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-700">
+                        <h3 class="font-bold text-white">Langkah 3 — Ringkasan & Pembayaran</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex flex-col md:flex-row md:items-start justify-between gap-8">
+                            <!-- Payment Method -->
+                            <div class="space-y-4 min-w-[280px]">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-2">Metode Pembayaran</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                                            <input type="radio" name="payment-method" value="cash" checked class="text-blue-500">
+                                            <span class="text-white">💵 Cash / Tunai</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                                            <input type="radio" name="payment-method" value="transfer" class="text-blue-500">
+                                            <span class="text-white">🏦 Transfer Bank</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                                            <input type="radio" name="payment-method" value="qris" class="text-blue-500">
+                                            <span class="text-white">📱 QRIS / E-Wallet</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="flex-1 max-w-md space-y-3">
+                                <div class="flex justify-between text-slate-400 text-sm">
+                                    <span>Subtotal</span>
+                                    <span id="summary-subtotal">Rp 0</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-slate-400">Diskon (Rp)</span>
+                                    <input type="number" id="discount-input" value="0" min="0" oninput="calculateSummary()" class="w-40 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-right focus:outline-none focus:border-blue-500">
+                                </div>
+                                <div class="border-t border-slate-600 pt-3 flex justify-between">
+                                    <span class="font-bold text-white text-lg">Total Bayar</span>
+                                    <span id="summary-total" class="font-bold text-2xl text-emerald-400">Rp 0</span>
+                                </div>
+                                <div class="pt-2">
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Jumlah Bayar (Rp)</label>
+                                    <input type="number" id="amount-paid" placeholder="Masukkan jumlah uang diterima" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 text-lg" oninput="calculateChange()">
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-400">Kembalian</span>
+                                    <span id="summary-change" class="font-bold text-amber-400">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-slate-700">
+                            <button onclick="resetTransaction()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition">Reset</button>
+                            <button onclick="processPayment()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition text-lg shadow-lg shadow-emerald-900/30">💰 Proses Pembayaran</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let selectedSPK = null;
+        let cartItems = [];
+
+        // Load SPK list on page load
+        async function loadSPKList() {
+            try {
+                const res = await fetch('/api/spk');
+                if (!res.ok) throw new Error('Gagal mengambil data SPK');
+                const spks = await res.json();
+                const select = document.getElementById('spk-select');
+                // Filter: only show SPK that are not yet invoiced
+                const activeSPKs = spks.filter(s => s.status !== 'invoiced');
+                select.innerHTML = '<option value="">-- Pilih No. SPK --</option>';
+                activeSPKs.forEach(s => {
+                    select.innerHTML += `<option value="${s.id}">${s.spkNumber} — ${s.complaints} (${s.status})</option>`;
+                });
+            } catch (err) {
+                showAlert('red', 'Gagal memuat daftar SPK. Pastikan server sedang berjalan.');
+            }
+        }
+
+        async function loadSPK() {
+            const spkId = document.getElementById('spk-select').value;
+            if (!spkId) return;
+
+            try {
+                const res = await fetch('/api/spk');
+                const spks = await res.json();
+                selectedSPK = spks.find(s => s.id == spkId);
+                if (!selectedSPK) throw new Error('SPK tidak ditemukan');
+
+                const detail = document.getElementById('spk-detail');
+                detail.classList.remove('hidden');
+                detail.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><span class="text-slate-400">No. SPK:</span> <span class="text-white font-medium ml-2">${selectedSPK.spkNumber}</span></div>
+                        <div><span class="text-slate-400">Status:</span> <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full uppercase ml-2">${selectedSPK.status}</span></div>
+                        <div><span class="text-slate-400">Keluhan:</span> <span class="text-white ml-2">${selectedSPK.complaints}</span></div>
+                        <div><span class="text-slate-400">Estimasi Biaya:</span> <span class="text-emerald-400 font-medium ml-2">Rp ${Number(selectedSPK.estimatedTotal).toLocaleString('id-ID')}</span></div>
+                        <div><span class="text-slate-400">KM Mobil:</span> <span class="text-white ml-2">${selectedSPK.kmCurrent?.toLocaleString() || '-'} km</span></div>
+                    </div>
+                `;
+                // Auto-fill estimated total as starting subtotal
+                document.getElementById('item-price').value = selectedSPK.estimatedTotal || '';
+                document.getElementById('item-name').value = 'Biaya Service (Estimasi)';
+                addItem();
+            } catch (err) {
+                showAlert('red', 'Gagal memuat detail SPK: ' + err.message);
+            }
+        }
+
+        function addItem() {
+            const name = document.getElementById('item-name').value.trim();
+            const qty = parseInt(document.getElementById('item-qty').value) || 1;
+            const price = parseFloat(document.getElementById('item-price').value) || 0;
+
+            if (!name || price <= 0) {
+                showAlert('amber', 'Mohon isi nama item dan harga yang valid.');
+                return;
+            }
+
+            cartItems.push({ name, qty, price, subtotal: qty * price });
+            document.getElementById('item-name').value = '';
+            document.getElementById('item-qty').value = '1';
+            document.getElementById('item-price').value = '';
+
+            renderCart();
+            calculateSummary();
+        }
+
+        function removeItem(index) {
+            cartItems.splice(index, 1);
+            renderCart();
+            calculateSummary();
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('items-body');
+            if (cartItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Belum ada item ditambahkan.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = cartItems.map((item, i) => `
+                <tr>
+                    <td class="px-4 py-3 font-medium text-white">${item.name}</td>
+                    <td class="px-4 py-3 text-center">${item.qty}</td>
+                    <td class="px-4 py-3 text-right">Rp ${item.price.toLocaleString('id-ID')}</td>
+                    <td class="px-4 py-3 text-right font-medium text-emerald-400">Rp ${item.subtotal.toLocaleString('id-ID')}</td>
+                    <td class="px-4 py-3 text-center"><button onclick="removeItem(${i})" class="text-red-400 hover:text-red-300 font-bold text-lg">×</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function calculateSummary() {
+            const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
+            const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+            const total = Math.max(0, subtotal - discount);
+            document.getElementById('summary-subtotal').innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
+            document.getElementById('summary-total').innerText = 'Rp ' + total.toLocaleString('id-ID');
+            calculateChange();
+            return total;
+        }
+
+        function calculateChange() {
+            const total = calculateSummary();
+            const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
+            const change = Math.max(0, paid - total);
+            document.getElementById('summary-change').innerText = 'Rp ' + change.toLocaleString('id-ID');
+        }
+
+        async function processPayment() {
+            if (!selectedSPK) {
+                showAlert('amber', 'Pilih SPK terlebih dahulu di Langkah 1.');
+                return;
+            }
+            if (cartItems.length === 0) {
+                showAlert('amber', 'Tambahkan minimal 1 item di Langkah 2.');
+                return;
+            }
+
+            const totalAmount = calculateSummary();
+            const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+            const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
+            const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+
+            if (paid < totalAmount) {
+                showAlert('red', 'Jumlah bayar kurang dari total. Harap masukkan nominal yang mencukupi.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/pos/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceOrderId: selectedSPK.id,
+                        invoiceNumber: 'INV-' + Date.now(),
+                        totalAmount: totalAmount.toString(),
+                        discount: discount.toString(),
+                        paymentMethod
+                    })
+                });
+
+                if (!res.ok) throw new Error('Gagal memproses pembayaran');
+
+                const result = await res.json();
+                showAlert('green', `✅ Pembayaran berhasil! Nota #${result.invoice.invoiceNumber} telah dicetak dan SPK statusnya berubah menjadi 'invoiced'.`);
+                setTimeout(() => {
+                    resetTransaction();
+                    loadSPKList();
+                }, 2500);
+            } catch (err) {
+                showAlert('red', 'Terjadi kesalahan: ' + err.message);
+            }
+        }
+
+        function resetTransaction() {
+            selectedSPK = null;
+            cartItems = [];
+            document.getElementById('spk-select').value = '';
+            document.getElementById('spk-detail').classList.add('hidden');
+            document.getElementById('discount-input').value = '0';
+            document.getElementById('amount-paid').value = '';
+            document.getElementById('summary-change').innerText = 'Rp 0';
+            renderCart();
+            calculateSummary();
+            document.getElementById('alert-box').classList.add('hidden');
+        }
+
+        function showAlert(type, message) {
+            const box = document.getElementById('alert-box');
+            box.classList.remove('hidden');
+            if (type === 'red') {
+                box.className = 'p-4 rounded-xl text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+            } else if (type === 'green') {
+                box.className = 'p-4 rounded-xl text-sm font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            } else if (type === 'amber') {
+                box.className = 'p-4 rounded-xl text-sm font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            }
+            box.innerText = message;
+        }
+
+        // Init
+        loadSPKList();
+        calculateSummary();
+    </script>
+</body>
+</html>

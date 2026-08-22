@@ -53,6 +53,27 @@ app.post("/api/spk", async (req, res) => {
   }
 });
 
+app.patch("/api/spk/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, estimatedTotal, complaints, kmCurrent } = req.body;
+    const updateData: any = {};
+    if (status !== undefined) updateData.status = status;
+    if (estimatedTotal !== undefined) updateData.estimatedTotal = estimatedTotal;
+    if (complaints !== undefined) updateData.complaints = complaints;
+    if (kmCurrent !== undefined) updateData.kmCurrent = kmCurrent;
+
+    const [updated] = await db.update(serviceOrders)
+      .set(updateData)
+      .where(eq(serviceOrders.id, parseInt(id)))
+      .returning();
+    if (!updated) throw new Error("SPK tidak ditemukan");
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 2. Inventory Endpoints
 app.get("/api/inventory", async (req, res) => {
   try {

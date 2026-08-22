@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen SPK - BengkelOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <div class="p-5 border-b border-slate-700 flex items-center space-x-3">
+                <span class="text-2xl">🔧</span>
+                <h1 class="text-xl font-bold text-white tracking-wider">BengkelOS</h1>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="index.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <span>📊</span><span>Dashboard</span>
+                </a>
+                <a href="spk.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium">
+                    <span>📋</span><span>SPK (Job Order)</span>
+                </a>
+                <a href="pos.html" class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <span>💰</span><span>Kasir (POS)</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-slate-700 text-xs text-slate-400">
+                PT. Surga Mobil Indonesia / Mobeng Style
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            <!-- Topbar -->
+            <header class="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-8">
+                <h2 class="text-lg font-semibold text-white">Manajemen SPK</h2>
+                <div class="flex items-center space-x-4">
+                    <button onclick="openCreateModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition">+ Buat SPK Baru</button>
+                    <span id="server-status" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">System Online</span>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="p-8 space-y-6">
+                <!-- Alert -->
+                <div id="alert-box" class="hidden p-4 rounded-xl text-sm font-medium"></div>
+
+                <!-- SPK List -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-white">Daftar Job Order / SPK</h3>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-xs text-slate-400">Filter Status:</label>
+                                <select id="filter-status" onchange="renderSPKList()" class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <option value="all">Semua</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="in_progress">Sedang Dikerjakan</option>
+                                    <option value="completed">Selesai</option>
+                                    <option value="invoiced">Sudah Dibayar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-slate-700/50 text-slate-400 uppercase text-xs">
+                                    <th class="px-6 py-3">No. SPK</th>
+                                    <th class="px-6 py-3">Keluhan</th>
+                                    <th class="px-6 py-3">Estimasi</th>
+                                    <th class="px-6 py-3">Status</th>
+                                    <th class="px-6 py-3">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spk-table-body" class="divide-y divide-slate-700 text-slate-300">
+                                <tr><td colspan="5" class="px-6 py-6 text-center text-slate-500">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Buat SPK Baru -->
+    <div id="create-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg p-6 space-y-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+                <h3 class="text-lg font-bold text-white">Buat SPK (Job Order) Baru</h3>
+                <button onclick="closeCreateModal()" class="text-slate-400 hover:text-white text-xl">×</button>
+            </div>
+            <form id="create-spk-form" onsubmit="submitCreateSPK(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">No. SPK</label>
+                    <input type="text" id="new-spk-number" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" value="SPK-2026-001">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">ID Pelanggan</label>
+                        <input type="number" id="new-customer-id" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" value="1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">ID Kendaraan</label>
+                        <input type="number" id="new-vehicle-id" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" value="1">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Keluhan Pelanggan</label>
+                    <textarea id="new-complaints" required rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" placeholder="Contoh: Mesin bergetar, AC kurang dingin"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">KM Saat Ini</label>
+                        <input type="number" id="new-km" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Estimasi Biaya (Rp)</label>
+                        <input type="number" id="new-estimate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" value="0">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+                    <button type="button" onclick="closeCreateModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition">Simpan SPK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Detail SPK & Update Status -->
+    <div id="detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+                <h3 class="text-lg font-bold text-white">Detail & Update SPK</h3>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-white text-xl">×</button>
+            </div>
+            <div id="detail-content" class="space-y-4"></div>
+            <div class="border-t border-slate-700 pt-4 flex justify-end">
+                <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allSPKs = [];
+
+        async function loadSPKs() {
+            try {
+                const res = await fetch('/api/spk');
+                if (!res.ok) throw new Error('Gagal mengambil data SPK');
+                allSPKs = await res.json();
+                renderSPKList();
+            } catch (err) {
+                document.getElementById('spk-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-6 text-center text-red-400">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderSPKList() {
+            const filter = document.getElementById('filter-status').value;
+            const filtered = filter === 'all' ? allSPKs : allSPKs.filter(s => s.status === filter);
+            const tbody = document.getElementById('spk-table-body');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-6 text-center text-slate-500">Tidak ada data SPK.</td></tr>`;
+                return;
+            }
+
+            const statusColors = {
+                'pending':       'bg-amber-500/20 text-amber-400',
+                'in_progress':   'bg-blue-500/20 text-blue-400',
+                'completed':     'bg-emerald-500/20 text-emerald-400',
+                'invoiced':      'bg-slate-500/20 text-slate-400'
+            };
+            const statusLabels = {
+                'pending': 'Pending',
+                'in_progress': 'Sedang Dikerjakan',
+                'completed': 'Selesai',
+                'invoiced': 'Sudah Dibayar'
+            };
+
+            tbody.innerHTML = filtered.map(s => `
+                <tr class="hover:bg-slate-700/30 transition">
+                    <td class="px-6 py-4 font-medium text-white">${s.spkNumber}</td>
+                    <td class="px-6 py-4 text-slate-400 max-w-xs truncate" title="${s.complaints}">${s.complaints}</td>
+                    <td class="px-6 py-4 text-emerald-400">Rp ${Number(s.estimatedTotal || 0).toLocaleString('id-ID')}</td>
+                    <td class="px-6 py-4"><span class="px-2.5 py-1 text-xs rounded-full uppercase font-medium ${statusColors[s.status] || 'bg-slate-500/20 text-slate-400'}">${statusLabels[s.status] || s.status}</span></td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="openDetailModal(${s.id})" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition">Detail</button>
+                            ${s.status !== 'invoiced' ? `<button onclick="proceedToPOS(${s.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg transition">💰 Bayar</button>` : '<span class="text-xs text-slate-500">—</span>'}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openCreateModal() {
+            document.getElementById('create-modal').classList.remove('hidden');
+            document.getElementById('create-modal').classList.add('flex');
+            // Auto-generate SPK number
+            document.getElementById('new-spk-number').value = 'SPK-' + new Date().getFullYear() + '-' + String(allSPKs.length + 1).padStart(3, '0');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').classList.remove('flex');
+            document.getElementById('create-modal').classList.add('hidden');
+        }
+
+        async function submitCreateSPK(event) {
+            event.preventDefault();
+            const payload = {
+                workshopId: 1,
+                spkNumber: document.getElementById('new-spk-number').value,
+                customerId: parseInt(document.getElementById('new-customer-id').value),
+                vehicleId: parseInt(document.getElementById('new-vehicle-id').value),
+                complaints: document.getElementById('new-complaints').value,
+                kmCurrent: parseInt(document.getElementById('new-km').value || 0),
+                estimatedTotal: document.getElementById('new-estimate').value
+            };
+
+            try {
+                const res = await fetch('/api/spk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('Gagal menyimpan SPK');
+                closeCreateModal();
+                document.getElementById('create-spk-form').reset();
+                loadSPKs();
+                showAlert('green', '✅ SPK berhasil dibuat!');
+            } catch (err) {
+                showAlert('red', 'Error: ' + err.message);
+            }
+        }
+
+        async function openDetailModal(id) {
+            const spk = allSPKs.find(s => s.id === id);
+            if (!spk) return;
+
+            const statusOptions = [
+                { value: 'pending', label: 'Pending' },
+                { value: 'in_progress', label: 'Sedang Dikerjakan' },
+                { value: 'completed', label: 'Selesai' },
+                { value: 'invoiced', label: 'Sudah Dibayar' }
+            ];
+
+            document.getElementById('detail-content').innerHTML = `
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">No. SPK</span>
+                        <p class="text-white font-medium">${spk.spkNumber}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">Status</span>
+                        <p class="text-white font-medium capitalize">${spk.status}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">Keluhan</span>
+                        <p class="text-white">${spk.complaints}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">Estimasi Biaya</span>
+                        <p class="text-emerald-400 font-medium">Rp ${Number(spk.estimatedTotal || 0).toLocaleString('id-ID')}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">KM Mobil</span>
+                        <p class="text-white">${spk.kmCurrent ? spk.kmCurrent.toLocaleString() + ' km' : '-'}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 text-xs uppercase">Tanggal</span>
+                        <p class="text-white">${spk.createdAt ? new Date(spk.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}</p>
+                    </div>
+                </div>
+                ${spk.status !== 'invoiced' ? `
+                <div class="border-t border-slate-700 pt-4">
+                    <label class="block text-xs font-medium text-slate-400 mb-2">Update Status Pekerjaan</label>
+                    <div class="flex items-center space-x-3">
+                        <select id="update-status-select" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                            ${statusOptions.map(o => `<option value="${o.value}" ${spk.status === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                        </select>
+                        <button onclick="updateSPKStatus(${spk.id})" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition">Update</button>
+                    </div>
+                </div>
+                ` : '<div class="border-t border-slate-700 pt-4"><p class="text-emerald-400 text-sm font-medium">✅ SPK ini sudah lunas dan difakturkan.</p></div>'}
+            `;
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+            document.getElementById('detail-modal').classList.add('flex');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.remove('flex');
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        async function updateSPKStatus(id) {
+            const newStatus = document.getElementById('update-status-select').value;
+            try {
+                const res = await fetch(`/api/spk/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (!res.ok) throw new Error('Gagal update status');
+                closeDetailModal();
+                loadSPKs();
+                showAlert('green', `✅ Status SPK berhasil diupdate menjadi: ${newStatus.replace('_', ' ')}`);
+            } catch (err) {
+                showAlert('red', 'Error: ' + err.message);
+            }
+        }
+
+        function proceedToPOS(id) {
+            window.location.href = `pos.html?spk_id=${id}`;
+        }
+
+        function showAlert(type, message) {
+            const box = document.getElementById('alert-box');
+            box.classList.remove('hidden');
+            if (type === 'red') box.className = 'p-4 rounded-xl text-sm font-medium bg-red-500/20 text-red-400 border border-red-500/30';
+            else if (type === 'green') box.className = 'p-4 rounded-xl text-sm font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            else box.className = 'p-4 rounded-xl text-sm font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            box.innerText = message;
+            setTimeout(() => { box.classList.add('hidden'); }, 4000);
+        }
+
+        // Pre-select SPK if passed via URL param
+        const urlParams = new URLSearchParams(window.location.search);
+        const preSelectedSPK = urlParams.get('spk_id');
+
+        loadSPKs();
+    </script>
+</body>
+</html>
